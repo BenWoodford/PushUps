@@ -6,7 +6,7 @@ $db = new Database($config);
 
 if(isset($_POST['inputName']) && isset($_POST['inputGoal']))
 {
-    if(is_int($_POST['inputGoal']))
+    if(ctype_digit($_POST['inputGoal']))
     {
         $hash = md5(rand(0, 500) . $_POST['inputGoal'] . time());
         $db->write("INSERT INTO `users` (`hash`,`nickname`,`count`,`goal`) VALUES ('%s','%s',0,%d)", $hash, ((empty($_POST['inputName']) || strlen($_POST['inputName']) == 0) ? null : $_POST['inputName']), $_POST['inputGoal']);
@@ -20,10 +20,11 @@ if(isset($_GET['code']) && strlen($_GET['code']) == 32)
 
     if(!isset($user['goal']))
         unset($user);
-    elseif(isset($_POST['inputAchieved']) && ctype_digit($_POST['inputAchieved']))
+    elseif(isset($_POST['inputAchieved']) && ctype_digit($_POST['inputAchieved']) && intval($_POST['inputAchieved']) > 0)
     {
         $user['count'] += intval($_POST['inputAchieved']);
         $db->write("UPDATE `users` SET `count` = %d WHERE `hash` = '%s' LIMIT 1", $user['count'], $user['hash']);
+        header('Location: index.php?code=' . $user['hash']);
     }
 }
 
@@ -64,10 +65,23 @@ if(isset($_GET['code']) && strlen($_GET['code']) == 32)
             <div class="span4">
                 <div class="well">
                     <?php if(isset($user)) { ?>
-                        <p>Hey<?php if(!empty($user['nickname'])) echo " " . $user['nickname']; ?>, you're doing great! Only...</p>
-                        <h1 style="text-align: center;"><?=($user['goal'] - $user['count'])?></h1>
-                        <p class="pull-right">to go!</p>
-                        <div class="clearfix"></div>
+
+                        <?php if($user['count'] >= $user['goal']) { ?>
+                            <p class="text-success">You did it! You met your goal of <?=$user['goal']?> Push-Ups! But why stop there? You've done</p>
+                            <h1 style="text-align: center;"><?=$user['count']?></h1>
+                            <p class="pull-right">Push-Ups!</p>
+                            <div class="clearfix"></div>
+                            <?php if($user['count'] > $user['goal']) { ?>
+                                <p>That's <strong><?=($user['count'] - $user['goal'])?></strong> more than your goal! Keep going, you're doing great!</p>
+                            <?php } else { ?>
+                                <p>A goal isn't a finishing line, just a milestone, keep it up!</p>
+                            <?php } ?>
+                        <?php } else { ?>
+                            <p>Hey<?php if(!empty($user['nickname'])) echo " " . $user['nickname']; ?>, you're doing great! Only...</p>
+                            <h1 style="text-align: center;"><?=($user['goal'] - $user['count'])?></h1>
+                            <p class="pull-right">to go!</p>
+                            <div class="clearfix"></div>
+                        <?php } ?>
 
                         <p>Add to your counter:</p>
                         <form class="form-inline" method="post">
@@ -77,6 +91,7 @@ if(isset($_GET['code']) && strlen($_GET['code']) == 32)
                             </div>
                         </form>
                     <?php } else { ?>
+
                         <p>Want to make a PushUp counter? Enter your goal and a name (optional) below.</p>
                         <form class="form-horizontal" method="post">
                             <div class="control-group">
@@ -100,6 +115,7 @@ if(isset($_GET['code']) && strlen($_GET['code']) == 32)
                             </div>
                         </form>
                     <?php } ?>
+
                 </div>
             </div>
         </div>
